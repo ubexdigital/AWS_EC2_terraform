@@ -1,0 +1,70 @@
+//This is our provider
+provider "aws" {
+
+    region     = "${var.region}"
+    access_key = "${var.access_key}"
+    secret_key = "${var.secret_key}"
+}
+//Terraform to create a Security Group within AWS EC2, and populate it with rules to allow traffic on specific ports. In our case, we are allowing the tcp port 80 (HTTP).
+resource "aws_security_group" "web-server" {
+
+    name        = "web-server"
+    description = "Allow incoming HTTP Connections"
+    
+    ingress {
+
+        from_port = 80
+        to_port = 80
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+
+   }
+
+    egress {
+
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+
+    }
+
+}
+//set of code after security group creation where you will create an EC2 instance.
+resource "aws_instance" "web-server" {
+
+    ami = "ami-02e136e904f3da870"
+
+    instance_type = "t2.micro"
+
+    key_name = "whizlabs-key"
+
+    security_groups = ["${aws_security_group.web-server.name}"]
+
+ 
+    user_data = <<-EOF
+
+    #!/bin/bash
+
+    sudo su
+
+    yum update -y
+
+    yum install httpd -y
+
+    systemctl start httpd
+
+    systemctl enable httpd
+
+    echo "<html><h1> Welcome to Whizlabs. Happy Learning... </h1></html>" >> /var/www/html/index.html
+
+    EOF
+
+ 
+    tags = {
+
+        Name = "web_instance"
+
+    }
+
+}
